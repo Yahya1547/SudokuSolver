@@ -4,14 +4,19 @@ import pytesseract
 pytesseract.pytesseract.tesseract_cmd = 'C:\\Program Files\\Tesseract-OCR\\tesseract.exe'
 
 def inputFromText(number) :
+    # Setting path and open file
     path = "../test/tc" + str(number) + ".txt"
     fileConfig = open(path, "r")
     lines = fileConfig.readlines()
     
+    # Inisialisasi array 2 dimensi untuk sudoku
     sudoku = [[0 for i in range(9)] for j in range(9)]
-    container = [[] for i in range(9)]
+    
+    # Traverse setiap row
     for i,line in enumerate(lines):
         nums = line.split(' ')
+
+        # Traverse setiap kolom
         for j,num in enumerate(nums) : 
             if num[-1] == '\n' :
                 num = num[0]
@@ -19,7 +24,6 @@ def inputFromText(number) :
             if num == '#' :
                 sudoku[i][j] = 0
             else :
-                container[i].append(int(num))
                 sudoku[i][j] = int(num)
 
         
@@ -27,28 +31,36 @@ def inputFromText(number) :
 
 
 def inputFromImage(number) :
+    # Inisialisasi
     sudoku = [[0 for i in range(9)] for j in range(9)]
     
+    # Open image
     path = "../test/image" + str(number) + ".png"
     image = Image.open(path)
 
+    # Mendapatkan lebar dan tinggi tiap grid
     row, col = image.size
     h, w = row/9, col/9
 
-    for i in range(4,5) :
+    for i in range(9) :
         for j in range(9) :
-            im = image.crop((4 + w*j, 4 + h*i, w*(j+1) - 2, h*(i+1) - 3))
+            # Crop grid dan memperhalus gambar untuk convert string yang lebih tepat
+            im = image.crop((4 + w*j, 4 + h*i, w*(j+1) - 4, h*(i+1) - 3))
             im = im.convert('RGBA')
             im = im.filter(ImageFilter.MedianFilter())
             enhancer = ImageEnhance.Contrast(im)
             im = enhancer.enhance(2)
 
+            # Convert string dan menangani kasus kesalahan convert untuk angka 5
             text = pytesseract.image_to_string(im, lang = 'eng', config='--psm 6')
-
             if text == '' :
                 text = '0'
-            if text == 'S' :
+            if text[0] == 'S' :
                 text = '5'
+            if text[0] == '2' : # Menangani kasus khusus kesalahan convert pada angka 2 yang menjadi '2?'
+                text = '2'
+            if text[0] == '&' or text[0] == 'g' : # Menangani kasus khusus kesalahan convert pada angka 8
+                text = '8'
 
             number = int(text)
             sudoku[i][j] = number
@@ -56,6 +68,7 @@ def inputFromImage(number) :
     return sudoku
 
 def outputFile(sudoku, isImage, num) :
+    # Setting path untuk image ataupun file sesuai dengan nomor test case
     path = "../result/"
     if isImage :
         path = path + "image" + str(num) + "-jawaban.txt"
@@ -73,14 +86,17 @@ def outputFile(sudoku, isImage, num) :
             print(" " + str(sudoku[i][j]), end="")
             f.write(" " + str(sudoku[i][j]))
             
+            # Batas grid
             if j%3 == 2:
+
+                # Grid terakhir
                 if j == 8 :
                     print("")
                     f.write("\n")
                     if i % 3 == 2 and i != 8:
                         print("-------|-------|------")
                         f.write("-------|-------|------\n")
-                else :
+                else : # Bukan grid terakhir
                     print(" |", end="")
                     f.write(" |")
 
